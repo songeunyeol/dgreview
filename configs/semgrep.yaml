@@ -1,0 +1,16 @@
+# Semgrep local config stub (songeunyeol multi-stack)
+#
+# CI/local recommended packs (workflow uses these automatically):
+#   p/security-audit
+#   p/secrets
+# Optional stack packs: p/python p/javascript p/typescript p/java p/c
+#
+# Usage with packs only:
+#   semgrep scan --config p/security-audit --config p/secrets --json -o semgrep.json .
+#
+# Usage with this file + packs:
+#   semgrep scan --config configs/semgrep.yaml --config p/security-audit --config p/secrets .
+#
+# Add repo-specific rules under `rules:` as needed.
+
+rules: []
