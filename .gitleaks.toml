@@ -1,0 +1,21 @@
+# Minimal Gitleaks config stub for songeunyeol security-review-pipeline
+# Docs: https://github.com/gitleaks/gitleaks
+
+title = "gitleaks allowlist stub"
+
+[extend]
+# Use default gitleaks rules
+useDefault = true
+
+[allowlist]
+description = "Pipeline stub — add paths/regexes for known fixtures and false positives"
+paths = [
+  '''(.*?)(test|tests|fixtures|examples|samples)/''',
+  '''(.*?)(\.env\.example)$''',
+  '''(.*?)(security-review-pipeline/samples)/''',
+]
+regexes = [
+  '''EXAMPLE[A-Z0-9_]{0,32}''',
+  '''changeme''',
+  '''your[_-]?api[_-]?key[_-]?here''',
+]
