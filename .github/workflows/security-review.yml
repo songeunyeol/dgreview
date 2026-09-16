@@ -1,6 +1,6 @@
 name: Security Review
 
-"on":
+on:
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -21,22 +21,28 @@ jobs:
           fetch-depth: 0
 
       - name: Install Gitleaks and export JSON/SARIF
+        shell: bash
         run: |
           set -euo pipefail
           VERSION=8.21.2
           curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" \
             | tar -xz gitleaks
-          CONFIG_ARGS=()
-          if [ -f .gitleaks.toml ]; then
-            CONFIG_ARGS=(--config .gitleaks.toml)
-          fi
           # --exit-code 0 so leaks still produce reports without failing the step
-          ./gitleaks detect --source . "${CONFIG_ARGS[@]}" \
-            --report-format json --report-path gitleaks.json \
-            --exit-code 0
-          ./gitleaks detect --source . "${CONFIG_ARGS[@]}" \
-            --report-format sarif --report-path gitleaks.sarif \
-            --exit-code 0
+          if [ -f .gitleaks.toml ]; then
+            ./gitleaks detect --source . --config .gitleaks.toml \
+              --report-format json --report-path gitleaks.json \
+              --exit-code 0
+            ./gitleaks detect --source . --config .gitleaks.toml \
+              --report-format sarif --report-path gitleaks.sarif \
+              --exit-code 0
+          else
+            ./gitleaks detect --source . \
+              --report-format json --report-path gitleaks.json \
+              --exit-code 0
+            ./gitleaks detect --source . \
+              --report-format sarif --report-path gitleaks.sarif \
+              --exit-code 0
+          fi
           test -f gitleaks.json || echo '[]' > gitleaks.json
           test -f gitleaks.sarif || echo '{"version":"2.1.0","runs":[]}' > gitleaks.sarif
 
@@ -60,17 +66,16 @@ jobs:
 
       - name: Run Semgrep
         run: |
-          set -euo pipefail
-          # Prefer local configs/semgrep.yaml when present; else registry packs
+          set -eu
+          # Prefer local configs/semgrep.yaml when present; else registry packs.
+          # Also pull common packs for multi-stack repos (safe if already included).
+          # Use positional params (POSIX) — semgrep container default shell is sh, not bash.
+          set -- --config p/security-audit --config p/secrets
           if [ -f configs/semgrep.yaml ]; then
-            CONFIG=(--config configs/semgrep.yaml)
-          else
-            CONFIG=(--config p/security-audit --config p/secrets)
+            set -- --config configs/semgrep.yaml "$@"
           fi
-          # Also pull common packs for multi-stack repos (safe if already included)
-          EXTRA=(--config p/security-audit --config p/secrets)
-          semgrep scan "${CONFIG[@]}" "${EXTRA[@]}" --json --output semgrep.json . || true
-          semgrep scan "${CONFIG[@]}" "${EXTRA[@]}" --sarif --output semgrep.sarif . || true
+          semgrep scan "$@" --json --output semgrep.json . || true
+          semgrep scan "$@" --sarif --output semgrep.sarif . || true
           test -f semgrep.json || echo '{"results":[],"errors":[]}' > semgrep.json
           test -f semgrep.sarif || echo '{"version":"2.1.0","runs":[]}' > semgrep.sarif
 
@@ -116,6 +121,7 @@ jobs:
           python-version: "3.12"
 
       - name: Normalize to findings.json
+        shell: bash
         run: |
           set -euo pipefail
           SEMGREP=artifacts/semgrep/semgrep.json
