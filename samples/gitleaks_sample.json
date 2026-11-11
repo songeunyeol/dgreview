@@ -1,0 +1,10 @@
+[
+  {
+    "RuleID": "generic-api-key",
+    "Description": "Generic API Key",
+    "File": "config/prod.env",
+    "StartLine": 3,
+    "Fingerprint": "gitleaks-fp-demo-001",
+    "Commit": "abc123"
+  }
+]
